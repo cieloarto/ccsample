@@ -26,8 +26,12 @@ help() {
     echo "【タスク管理】"
     echo "  add-task '<タスク>'   - タスクをキューに追加"
     echo "  task-status          - 各チームの状況確認"
-    echo "  team-done <チーム>   - チームのタスク完了報告"
+    echo "  team-done <チーム> \"<タスク名>\" - チームのタスク完了処理"
     echo "  assign-next          - 次のタスクを自動割り当て"
+    echo ""
+    echo "【QA・PR管理】"
+    echo "  qa-approve <チーム> \"<タスク名>\" - QA承認とPR作成指示"
+    echo "  pr-created <チーム>  - PR作成完了報告"
     echo ""
     echo "【自動監視】"
     echo "  start-monitor        - 自動監視開始"
@@ -42,10 +46,10 @@ help() {
 claude-all() {
     echo "🚀 各ペインでClaudeを起動します..."
     # QAペイン
-    tmux send-keys -t "claude-pro-dev:0.1" "claude" C-m
+    tmux send-keys -t "claude-pro-dev:0.1" "claude --dangerously-skip-permissions" C-m
     # 開発チーム
     for i in {2..5}; do
-        tmux send-keys -t "claude-pro-dev:0.$i" "claude" C-m
+        tmux send-keys -t "claude-pro-dev:0.$i" "claude --dangerously-skip-permissions" C-m
     done
 }
 
@@ -91,6 +95,14 @@ implementation() {
     
     # 各チームに最初のタスクを割り当て
     assign-all-teams
+    
+    # 少し待ってから各チームで実行開始
+    echo "🔄 各チームでタスク実行を開始します..."
+    sleep 3
+    for i in {2..5}; do 
+        tmux send-keys -t "claude-pro-dev:0.$i" C-m
+        sleep 0.5
+    done
 }
 
 # 全チームにタスクを割り当て
@@ -106,17 +118,28 @@ assign-all-teams() {
 # 特定チームにタスクを割り当て
 assign-task-to-team() {
     local team="$1"
-    local pane_map=(["A"]=2 ["B"]=3 ["C"]=4 ["D"]=5)
+    declare -A pane_map=([A]=2 [B]=3 [C]=4 [D]=5)
     local pane="${pane_map[$team]}"
     
     if [ $TASK_INDEX -lt ${#TASKS[@]} ]; then
         local task="${TASKS[$TASK_INDEX]}"
+        
+        # 空のタスクをスキップ
+        if [ -z "$task" ]; then
+            echo "⚠️ 空のタスクをスキップします（インデックス: $TASK_INDEX）"
+            ((TASK_INDEX++))
+            assign-task-to-team "$team"
+            return
+        fi
+        
         TEAM_STATUS[$team]="working"
         TEAM_CURRENT_TASK[$team]="$task"
         
         echo "📌 チーム$team に割り当て: $task"
-        tmux send-keys -t "claude-pro-dev:0.$pane" "チーム$team: 次のタスクを実装してください: $task" C-m
-        tmux send-keys -t "claude-pro-dev:0.$pane" "完了したら、マネージャーペインで 'team-done $team' を実行してください。" C-m
+        sleep 1
+        tmux send-keys -t "claude-pro-dev:0.$pane" "チーム$team: $task を実装してください。完了後マネージャーペインで'team-done $team \"$task\"'実行。" C-m
+        sleep 1
+        tmux send-keys -t "claude-pro-dev:0.$pane" C-m
         
         ((TASK_INDEX++))
     else
@@ -125,23 +148,52 @@ assign-task-to-team() {
     fi
 }
 
-# チームのタスク完了
+# チームのタスク完了（QAフロー付き）
 team-done() {
     local team="$1"
+    local task_name="$2"
+    
     if [ -z "$team" ]; then
-        echo "使用方法: team-done <チーム名(A/B/C/D)>"
+        echo "使用方法: team-done <チーム名(A/B/C/D)> [タスク名]"
         return 1
     fi
     
-    echo "✅ チーム$team がタスクを完了しました: ${TEAM_CURRENT_TASK[$team]}"
-    TEAM_STATUS[$team]="idle"
-    
-    # 次のタスクがあれば自動で割り当て
-    if [ $TASK_INDEX -lt ${#TASKS[@]} ]; then
-        echo "🔄 次のタスクを割り当てます..."
-        assign-task-to-team "$team"
+    # タスク名が引数で渡されていない場合は、配列から取得を試みる
+    local completed_task
+    if [ -n "$task_name" ]; then
+        completed_task="$task_name"
     else
-        echo "🎉 チーム$team: 全タスク完了！"
+        completed_task="${TEAM_CURRENT_TASK[$team]}"
+    fi
+    
+    # 空のタスクをチェック
+    if [ -z "$completed_task" ]; then
+        echo "⚠️ チーム$team: タスク名が指定されていません"
+        echo "使用方法: team-done $team \"タスク名\""
+        return 1
+    fi
+    
+    echo "✅ チーム$team が開発完了: $completed_task"
+    
+    # QAチームにテスト依頼
+    echo "🔍 QAチームにテスト確認を依頼"
+    tmux send-keys -t "claude-pro-dev:0.1" "QAテスト依頼: チーム$team が『$completed_task』完了。テスト・レビュー後マネージャーペインで'qa-approve $team \"$completed_task\"'実行してください。" C-m
+    sleep 1
+    tmux send-keys -t "claude-pro-dev:0.1" C-m
+    
+    # チームを一時的にQA待ち状態に
+    TEAM_STATUS[$team]="qa_review"
+    
+    # 次のタスクがあれば他のアイドルチームに割り当て
+    if [ $TASK_INDEX -lt ${#TASKS[@]} ]; then
+        echo "🔄 他のチームに次のタスクを割り当てます..."
+        # アイドル状態のチームを探して割り当て
+        for idle_team in A B C D; do
+            if [ "${TEAM_STATUS[$idle_team]}" = "idle" ] && [ $TASK_INDEX -lt ${#TASKS[@]} ]; then
+                assign-task-to-team "$idle_team"
+                break
+            fi
+        done
     fi
 }
 
@@ -172,6 +224,87 @@ assign-next() {
     assign-all-teams
 }
 
+# QA承認とPR作成フロー
+qa-approve() {
+    local team="$1"
+    local task_name="$2"
+    
+    if [ -z "$team" ]; then
+        echo "使用方法: qa-approve <チーム名(A/B/C/D)> [タスク名]"
+        return 1
+    fi
+    
+    # タスク名が引数で渡されていない場合は、配列から取得を試みる
+    local current_task
+    if [ -n "$task_name" ]; then
+        current_task="$task_name"
+    else
+        current_task="${TEAM_CURRENT_TASK[$team]}"
+    fi
+    
+    echo "✅ QA承認: チーム$team の『$current_task』"
+    
+    # PR作成指示
+    declare -A pane_map=([A]=2 [B]=3 [C]=4 [D]=5)
+    local pane="${pane_map[$team]}"
+    
+    tmux send-keys -t "claude-pro-dev:0.$pane" "QA承認完了！PR作成手順: 1.git add . 2.git commit -m 'feat: $current_task' 3.git push 4.gh pr create 完了後マネージャーペインで'pr-created $team'実行" C-m
+    sleep 1
+    tmux send-keys -t "claude-pro-dev:0.$pane" C-m
+    
+    # チームをPR作成待ち状態に
+    TEAM_STATUS[$team]="pr_creation"
+}
+
+# PR作成完了
+pr-created() {
+    local team="$1"
+    if [ -z "$team" ]; then
+        echo "使用方法: pr-created <チーム名(A/B/C/D)>"
+        return 1
+    fi
+    
+    local current_task="${TEAM_CURRENT_TASK[$team]}"
+    echo "🎉 PR作成完了: チーム$team の『$current_task』"
+    echo "📊 タスク『$current_task』が完全に完了しました！"
+    
+    # チームをアイドル状態に戻し、次のタスクを割り当て
+    TEAM_STATUS[$team]="idle"
+    TEAM_CURRENT_TASK[$team]=""
+    
+    # 次のタスクがあれば割り当て
+    if [ $TASK_INDEX -lt ${#TASKS[@]} ]; then
+        echo "🔄 次のタスクを割り当てます..."
+        assign-task-to-team "$team"
+    else
+        echo "🎉 チーム$team: 全タスク完了！"
+    fi
+}
+
+# 完全なワークフロー状況確認
+workflow-status() {
+    echo "📊 完全なワークフロー進捗"
+    echo "========================"
+    echo "完了: $TASK_INDEX / ${#TASKS[@]} タスク"
+    echo ""
+    echo "チーム状況:"
+    for team in A B C D; do
+        echo -n "  チーム$team: ${TEAM_STATUS[$team]}"
+        if [ "${TEAM_STATUS[$team]}" = "working" ]; then
+            echo " - ${TEAM_CURRENT_TASK[$team]}"
+        else
+            echo ""
+        fi
+    done
+    echo ""
+    if [ ${#TASKS[@]} -gt 0 ]; then
+        echo "残りタスク:"
+        for ((i=$TASK_INDEX; i<${#TASKS[@]}; i++)); do
+            echo "  $((i+1)). ${TASKS[$i]}"
+        done
+    fi
+}
+
 clear-all() {
     for i in {0..5}; do
         tmux send-keys -t "claude-pro-dev:0.$i" "clear" C-m
@@ -193,7 +326,7 @@ start-monitor() {
         while [ "$MONITORING" = true ]; do
             # 各チームのペインを監視
             for team in A B C D; do
-                local pane_map=(["A"]=2 ["B"]=3 ["C"]=4 ["D"]=5)
+                declare -A pane_map=([A]=2 [B]=3 [C]=4 [D]=5)
                 local pane="${pane_map[$team]}"
                 
                 # ペインの最後の行を取得
@@ -208,7 +341,7 @@ start-monitor() {
                 fi
                 
                 # アイドル状態の検知（プロンプトが表示されている）
-                if [[ "$last_line" =~ (T$team>|>|$) ]] && [ "${TEAM_STATUS[$team]}" = "working" ]; then
+                if [[ "$last_line" =~ (T$team\>|\>) ]] && [ "${TEAM_STATUS[$team]}" = "working" ]; then
                     # 30秒間同じ状態なら完了とみなす
                     sleep 30
                     local current_line=$(tmux capture-pane -t "claude-pro-dev:0.$pane" -p | tail -1)

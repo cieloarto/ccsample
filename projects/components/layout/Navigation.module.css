@@ -1,0 +1,151 @@
+.navigation {
+  position: relative;
+}
+
+.navList {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Horizontal navigation (default) */
+.horizontal .navList {
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.horizontal .navItem {
+  position: relative;
+}
+
+.horizontal .navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+  position: relative;
+  white-space: nowrap;
+}
+
+.horizontal .navLink:hover {
+  background-color: var(--surface-color);
+  color: var(--primary-color);
+}
+
+.horizontal .navLink.active {
+  color: var(--primary-color);
+  background-color: rgba(0, 112, 243, 0.1);
+}
+
+.horizontal .activeIndicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 2px;
+  background-color: var(--primary-color);
+  border-radius: 1px;
+}
+
+/* Vertical navigation */
+.vertical .navList {
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vertical .navItem {
+  width: 100%;
+}
+
+.vertical .navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+  position: relative;
+  width: 100%;
+}
+
+.vertical .navLink:hover {
+  background-color: var(--surface-color);
+  color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.vertical .navLink.active {
+  color: var(--primary-color);
+  background-color: rgba(0, 112, 243, 0.1);
+  border-left: 3px solid var(--primary-color);
+  padding-left: calc(1rem - 3px);
+}
+
+.vertical .activeIndicator {
+  display: none;
+}
+
+/* Common styles */
+.navIcon {
+  font-size: 1.125rem;
+  width: 1.25rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.navLabel {
+  font-size: 0.9rem;
+  letter-spacing: 0.025em;
+}
+
+/* Focus styles for accessibility */
+.navLink:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .horizontal .navList {
+    gap: 0.25rem;
+  }
+  
+  .horizontal .navLink {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .navIcon {
+    font-size: 1rem;
+    width: 1rem;
+  }
+  
+  .navLabel {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .horizontal .navLabel {
+    display: none;
+  }
+  
+  .horizontal .navLink {
+    padding: 0.5rem;
+    justify-content: center;
+  }
+  
+  .horizontal .navIcon {
+    margin: 0;
+  }
+}

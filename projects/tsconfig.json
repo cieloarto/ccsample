@@ -18,7 +18,7 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
+    "noUncheckedSideEffectImports": false,
     "forceConsistentCasingInFileNames": true,
     "plugins": [
       {
@@ -49,6 +49,7 @@
     "node_modules",
     ".next",
     "out",
-    "dist"
+    "dist",
+    "my-nextjs-app"
   ]
 }

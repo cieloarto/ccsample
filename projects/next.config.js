@@ -13,7 +13,7 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
+    CUSTOM_KEY: process.env.CUSTOM_KEY || 'default-value',
   },
   experimental: {
     optimizeCss: true,

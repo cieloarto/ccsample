@@ -18,7 +18,8 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
+    "noUncheckedSideEffectImports": false,
+    "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
     "plugins": [
       {
@@ -49,6 +50,7 @@
     "node_modules",
     ".next",
     "out",
-    "dist"
+    "dist",
+    "my-nextjs-app"
   ]
 }

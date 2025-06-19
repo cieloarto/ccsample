@@ -2,9 +2,15 @@
   "name": "nextjs-project",
   "version": "0.1.0",
   "private": true,
-  "description": "A Next.js project with TypeScript and comprehensive development tools - Team A Initial Setup",
+  "description": "Enterprise-grade Next.js project with TypeScript, comprehensive development tools, and team collaboration features - Team A Initial Setup",
   "author": "Team A",
-  "keywords": ["nextjs", "typescript", "react", "tailwindcss", "team-a"],
+  "keywords": [
+    "nextjs",
+    "typescript",
+    "react",
+    "tailwindcss",
+    "team-a"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -25,7 +31,8 @@
   },
   "dependencies": {
     "clsx": "^2.0.0",
-    "next": "14.0.4",
+    "critters": "^0.0.23",
+    "next": "^14.2.30",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

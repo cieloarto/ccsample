@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Team B */
+.team-b-theme {
+  --primary-color: #2563eb;
+  --secondary-color: #1f2937;
+  --accent-color: #3b82f6;
+}
+
+body {
+  @apply bg-gray-50;
+}
+
+.container {
+  @apply max-w-6xl;
+}

@@ -2,7 +2,7 @@
   "name": "nextjs-project",
   "version": "0.1.0",
   "private": true,
-  "description": "A Next.js project with TypeScript and comprehensive development tools - Team A Initial Setup",
+  "description": "Enterprise-grade Next.js project with TypeScript, comprehensive development tools, and team collaboration features - Team A Initial Setup",
   "author": "Team A",
   "keywords": [
     "nextjs",
